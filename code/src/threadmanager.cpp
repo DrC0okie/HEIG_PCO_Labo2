@@ -163,4 +163,29 @@ QString ThreadManager::startHacking(
      * été testés, et qu'aucun n'est la préimage de ce hash.
      */
     return QString("");
+
+    // TODO Aubry : créer les threads et les mettre dans le vecteur puis les lancer. Attendre que variable found soit
+    // set pui retourner valeur
+}
+
+void ThreadManager::prepareHack(QString charset,
+                                QString salt,
+                                QString hash,
+                                unsigned int nbChars,
+                                unsigned int nbThreads) {
+    QString currentPasswordString;
+    QVector<unsigned int> currentPasswordArray;
+
+    currentPasswordString.fill(charset.at(0),nbChars);
+    currentPasswordArray.fill(0,nbChars);
+
+    // TODO: wip Tim
+}
+
+QString ThreadManager::getNextStackItem() {
+    mutex.lock();
+    QString str = searchStack.top();
+    searchStack.pop();
+    mutex.unlock();
+    return str;
 }

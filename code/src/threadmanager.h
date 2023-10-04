@@ -14,6 +14,9 @@
 
 #include <QObject>
 #include <QString>
+#include <stack>
+
+#include <pcosynchro/pcomutex.h>
 
 
 /**
@@ -25,8 +28,16 @@ class ThreadManager: public QObject
 {
     Q_OBJECT
 private:
+    static PcoMutex mutex;
+    static std::stack<QString> searchStack;
+
+    static bool hashFound; // FIXME: rendre atomique ?
+    static QString hashPrimitive;
+    // TODO Aubry: créer vecteur qui tiendra les threads
 
 public:
+    static QString getNextStackItem();
+
     /**
      * \brief ThreadManager Constructeur simple
      * \param parent Objet parent de l'interface
@@ -52,6 +63,12 @@ public:
             unsigned int nbChars,
             unsigned int nbThreads
     );
+
+    void prepareHack(QString charset,
+                     QString salt,
+                     QString hash,
+                     unsigned int nbChars,
+                     unsigned int nbThreads);
 
 
     /**
