@@ -14,8 +14,7 @@
 
 #include <QObject>
 #include <QString>
-#include <stack>
-#include <QCryptographicHash>
+#include <queue>
 
 #include <pcosynchro/pcomutex.h>
 
@@ -28,21 +27,17 @@
 class ThreadManager: public QObject
 {
     Q_OBJECT
-private:
-    static PcoMutex mutex;
-    static std::stack<QString> searchStack;
 
-    static bool hashFound; // FIXME: rendre atomique ?
+private:
     static QString hashPrimitive;
-    static QString computeHash(const QString &combination, QCryptographicHash &md5);
-    static QString idToCombination(size_t id, const QString& charset, size_t passwordLength);
-    static void bruteForceThread(const QString& charset, size_t desiredLength,
-                                 const QString& targetHash, std::atomic<bool>& foundFlag);
-    static bool getNextWorkChunk(size_t& start, size_t& end);
-    static void clearWorkQueue();
 
 public:
-    static QString getNextStackItem();
+    static void clearWorkQueue();
+    // Concurrent work queue containing ranges
+    static std::queue<std::pair<int, int>> workQueue;  // Thread-safe variant needed
+    static PcoMutex queueMutex; // Locks the access to the queue
+    static PcoMutex resultMutex; // Locks the access to the Qstring
+    static QString foundPassword;
 
     /**
      * \brief ThreadManager Constructeur simple
@@ -69,13 +64,6 @@ public:
             unsigned int nbChars,
             unsigned int nbThreads
     );
-
-    void prepareHack(QString charset,
-                     QString salt,
-                     QString hash,
-                     unsigned int nbChars,
-                     unsigned int nbThreads);
-
 
     /**
      * \brief incrementPercentComputed fonction qui indique que le pourcentage

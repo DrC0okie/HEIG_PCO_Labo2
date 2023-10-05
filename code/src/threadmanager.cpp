@@ -8,15 +8,14 @@
 #include <pcosynchro/pcothread.h>
 #include <pcosynchro/pcomutex.h>
 
-
 #include "threadmanager.h"
+#include "mythread.h"
 
-// Concurrent work queue containing ranges
-std::queue<std::pair<int, int>> workQueue;  // Thread-safe variant needed
-PcoMutex queueMutex; //Locks the access to the queue
-PcoMutex resultMutex; //LOcks the access to the Qstring
-QString foundPassword = "";
 
+std::queue<std::pair<int, int>> ThreadManager::workQueue = std::queue<std::pair<int, int>>();
+PcoMutex ThreadManager::queueMutex = PcoMutex(); // Locks the access to the queue
+PcoMutex ThreadManager::resultMutex = PcoMutex(); // Locks the access to the Qstring
+QString ThreadManager::foundPassword = QString();
 
 /*
  * std::pow pour les long long unsigned int
@@ -82,7 +81,7 @@ QString ThreadManager::startHacking(
     for (size_t i = 0; i < nbThreads; i++) {
         threads.push_back(PcoThread(
             [charset, hash, nbChars, &foundFlag]() {
-                bruteForceThread(charset, nbChars, hash, foundFlag);
+                MyThread::bruteForceThread(charset, nbChars, hash, foundFlag);
             }
         ));
     }
@@ -96,76 +95,10 @@ QString ThreadManager::startHacking(
     return foundPassword;
 }
 
-// This function represents the work done by each thread.
-// Each thread picks up tasks (ranges) from the workQueue until either
-// the password is found or there's no more work left.
-void ThreadManager::bruteForceThread(const QString& charset, size_t desiredLength,
-                  const QString& targetHash, std::atomic<bool>& foundFlag) {
-
-    // MD5 hashing object
-    QCryptographicHash md5(QCryptographicHash::Md5);
-    size_t start, end;
-
-    // Continue while the password hasn't been found.
-    while (!foundFlag.load() && getNextWorkChunk(start, end)) {
-
-        // Test each combination in the range.
-        for (size_t i = start; i < end && !foundFlag.load(); i++) {
-            QString combination = idToCombination(i, charset, desiredLength);
-            QString hash = computeHash(combination, md5);
-
-            // If a match is found, store the result, empty the queue and set the found flag.
-            if (hash == targetHash) {
-                std::lock_guard<PcoMutex> lock(resultMutex);
-                foundPassword = combination;
-                foundFlag.store(true);
-                clearWorkQueue();
-                return;
-            }
-        }
-    }
-}
-
-bool ThreadManager::getNextWorkChunk(size_t& start, size_t& end) {
-
-    // Fetch a range of combinations to test from the workQueue.
-    std::lock_guard<PcoMutex> lock(queueMutex);
-    if (workQueue.empty()){
-        return false;
-    }
-
-    //Get new chunk
-    std::tie(start, end) = workQueue.front();
-    workQueue.pop();
-    return true;
-}
-
 void ThreadManager::clearWorkQueue() {
-    std::lock_guard<PcoMutex> lock(queueMutex);
+    std::lock_guard<PcoMutex> lock(ThreadManager::queueMutex);
     std::queue<std::pair<int, int>> emptyQueue;
-    std::swap(workQueue, emptyQueue);
+    std::swap(ThreadManager::workQueue, emptyQueue);
 }
 
-// Compute the MD5 hash of a given combination.
-QString ThreadManager::computeHash(const QString &combination, QCryptographicHash &md5){
-    md5.reset();
-    // md5.addData(salt.toLatin1());  // TODO: To be implemented
-    md5.addData(combination.toLatin1());
 
-    // Convert the hash result to a hex string and return.
-    return md5.result().toHex();
-}
-
-// Convert a number (id) to its corresponding combination in the charset.
-// This function effectively converts the number to a base-n representation,
-// where n is the size of the charset.
-QString ThreadManager::idToCombination(size_t id, const QString& charset, size_t passwordLength){
-    QString result(passwordLength, Qt::Uninitialized);  // Preallocate string
-
-    for (int pos = passwordLength - 1; pos >= 0; --pos) {
-        result[pos] = charset.at(id % charset.size());
-        id /= charset.size();
-    }
-
-    return result;
-}
