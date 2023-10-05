@@ -15,6 +15,7 @@
 #include <QObject>
 #include <QString>
 #include <stack>
+#include <QCryptographicHash>
 
 #include <pcosynchro/pcomutex.h>
 
@@ -33,7 +34,12 @@ private:
 
     static bool hashFound; // FIXME: rendre atomique ?
     static QString hashPrimitive;
-    // TODO Aubry: créer vecteur qui tiendra les threads
+    static QString computeHash(const QString &combination, QCryptographicHash &md5);
+    static QString idToCombination(size_t id, const QString& charset, size_t passwordLength);
+    static void bruteForceThread(const QString& charset, size_t desiredLength,
+                                 const QString& targetHash, std::atomic<bool>& foundFlag);
+    static bool getNextWorkChunk(size_t& start, size_t& end);
+    static void clearWorkQueue();
 
 public:
     static QString getNextStackItem();
