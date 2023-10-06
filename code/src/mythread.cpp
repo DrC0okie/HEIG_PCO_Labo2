@@ -2,23 +2,19 @@
 
 #include <QCryptographicHash>
 
-void BruteForceThread::run(ThreadManager&     manager,
-                           const QString&     charset,
-                           size_t             desiredLength,
-                           const QString&     targetHash,
-                           std::atomic<bool>& foundFlag) {
+void BruteForceThread::run(ThreadManager::ThreadParameters params) {
     size_t start, end;
 
     // Continue while the password hasn't been found.
-    while (!foundFlag.load() && manager.getNextWorkChunk(start, end)) {
+    while (!params.flag.load() && params.manager.getWork(start, end)) {
         // Test each combination in the range.
-        for (size_t i = start; i < end && !foundFlag.load(); i++) {
-            QString combination = idToCombination(i, charset, desiredLength);
+        for (size_t i = start; i < end && !params.flag.load(); i++) {
+            QString combination = idToCombination(i, params.charset, params.length);
             QString hash        = computeHash(combination);
 
             // If a match is found, store the result, empty the queue and set the found flag.
-            if (hash == targetHash) {
-                handleHashFound(manager, combination, foundFlag);
+            if (hash == params.hash) {
+                handleHashFound(params.manager, combination, params.flag);
                 return;
             }
         }

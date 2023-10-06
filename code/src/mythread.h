@@ -22,12 +22,12 @@ class BruteForceThread {
      * \param desiredLength The length of the password
      * \param targetHash The hash to be reversed
      * \param foundFlag An atomic flag that indicates whether the password has been found
+     *
+     * This function starts the brute force hacking process using multiple threads.
+     * The function divides the work among the threads, waits for them to finish,
+     * and then returns the found password if any.
      */
-    static void run(ThreadManager&     manager,
-                    const QString&     charset,
-                    size_t             desiredLength,
-                    const QString&     targetHash,
-                    std::atomic<bool>& foundFlag);
+    static void run(ThreadManager::ThreadParameters params);
 
     private:
     /**
