@@ -1,38 +1,33 @@
-#include <QCryptographicHash>
-
 #include "mythread.h"
 
-// This function represents the work done by each thread.
-// Each thread picks up tasks (ranges) from the workQueue until either
-// the password is found or there's no more work left.
-void MyThread::bruteForceThread(ThreadManager& manager,const QString& charset, size_t desiredLength,
-                  const QString& targetHash, std::atomic<bool>& foundFlag) {
-    // MD5 hashing object
-    QCryptographicHash md5(QCryptographicHash::Md5);
+#include <QCryptographicHash>
+
+void BruteForceThread::run(ThreadManager&     manager,
+                           const QString&     charset,
+                           size_t             desiredLength,
+                           const QString&     targetHash,
+                           std::atomic<bool>& foundFlag) {
     size_t start, end;
 
     // Continue while the password hasn't been found.
     while (!foundFlag.load() && manager.getNextWorkChunk(start, end)) {
-
         // Test each combination in the range.
         for (size_t i = start; i < end && !foundFlag.load(); i++) {
             QString combination = idToCombination(i, charset, desiredLength);
-            QString hash = computeHash(combination, md5);
+            QString hash        = computeHash(combination);
 
             // If a match is found, store the result, empty the queue and set the found flag.
             if (hash == targetHash) {
-                std::lock_guard<PcoMutex> lock(manager.resultMutex);
-                manager.setFoundPassword(combination);
-                foundFlag.store(true);
-                manager.clearWorkQueue();
+                handleHashFound(manager, combination, foundFlag);
                 return;
             }
         }
     }
 }
 
-// Compute the MD5 hash of a given combination.
-QString MyThread::computeHash(const QString &combination, QCryptographicHash &md5){
+QString BruteForceThread::computeHash(const QString& combination) {
+    QCryptographicHash md5(QCryptographicHash::Md5);
+
     md5.reset();
     // md5.addData(salt.toLatin1());  // TODO: To be implemented
     md5.addData(combination.toLatin1());
@@ -41,10 +36,7 @@ QString MyThread::computeHash(const QString &combination, QCryptographicHash &md
     return md5.result().toHex();
 }
 
-// Convert a number (id) to its corresponding combination in the charset.
-// This function effectively converts the number to a base-n representation,
-// where n is the size of the charset.
-QString MyThread::idToCombination(size_t id, const QString& charset, size_t passwordLength){
+QString BruteForceThread::idToCombination(size_t id, const QString& charset, size_t passwordLength) {
     QString result(passwordLength, Qt::Uninitialized);  // Preallocate string
 
     for (int pos = passwordLength - 1; pos >= 0; --pos) {
@@ -53,4 +45,11 @@ QString MyThread::idToCombination(size_t id, const QString& charset, size_t pass
     }
 
     return result;
+}
+
+void BruteForceThread::handleHashFound(ThreadManager& manager, const QString& combination, std::atomic<bool>& foundFlag) {
+    std::lock_guard<PcoMutex> lock(manager.resultMutex);
+    manager.setFoundPassword(combination);
+    foundFlag.store(true);
+    manager.cancelWork();
 }
