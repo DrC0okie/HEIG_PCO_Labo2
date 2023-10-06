@@ -29,15 +29,17 @@ class ThreadManager: public QObject
     Q_OBJECT
 
 private:
-    static QString hashPrimitive;
+    QString hashPrimitive;
+    std::size_t totalChunks;
+    double chunkProgressFactor;
 
 public:
-    static void clearWorkQueue();
+    void clearWorkQueue();
     // Concurrent work queue containing ranges
-    static std::queue<std::pair<int, int>> workQueue;  // Thread-safe variant needed
-    static PcoMutex queueMutex; // Locks the access to the queue
-    static PcoMutex resultMutex; // Locks the access to the Qstring
-    static QString foundPassword;
+    std::queue<std::pair<int, int>> workQueue;  // Thread-safe variant needed
+    PcoMutex queueMutex; // Locks the access to the queue
+    PcoMutex resultMutex; // Locks the access to the Qstring
+    QString foundPassword;
 
     /**
      * \brief ThreadManager Constructeur simple
@@ -65,6 +67,8 @@ public:
             unsigned int nbThreads
     );
 
+    void setFoundPassword(QString password);
+
     /**
      * \brief incrementPercentComputed fonction qui indique que le pourcentage
      * de test effectué pour casser le hash md5.
@@ -72,6 +76,13 @@ public:
      * reverser le hash md5
      */
     void incrementPercentComputed(double percentComputed);
+
+    /**
+     * \brief Returns the next chunk of work to be done by a thread.
+     * \param start The start index of the range
+     * \param end The end index of the range
+     */
+    bool getNextWorkChunk(size_t& start, size_t& end);
 
 signals:
     /**

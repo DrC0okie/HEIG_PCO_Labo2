@@ -1,19 +1,18 @@
 #include <QCryptographicHash>
 
 #include "mythread.h"
-#include "threadmanager.h"
 
 // This function represents the work done by each thread.
 // Each thread picks up tasks (ranges) from the workQueue until either
 // the password is found or there's no more work left.
-void MyThread::bruteForceThread(const QString& charset, size_t desiredLength,
+void MyThread::bruteForceThread(ThreadManager& manager,const QString& charset, size_t desiredLength,
                   const QString& targetHash, std::atomic<bool>& foundFlag) {
     // MD5 hashing object
     QCryptographicHash md5(QCryptographicHash::Md5);
     size_t start, end;
 
     // Continue while the password hasn't been found.
-    while (!foundFlag.load() && getNextWorkChunk(start, end)) {
+    while (!foundFlag.load() && manager.getNextWorkChunk(start, end)) {
 
         // Test each combination in the range.
         for (size_t i = start; i < end && !foundFlag.load(); i++) {
@@ -22,27 +21,14 @@ void MyThread::bruteForceThread(const QString& charset, size_t desiredLength,
 
             // If a match is found, store the result, empty the queue and set the found flag.
             if (hash == targetHash) {
-                std::lock_guard<PcoMutex> lock(ThreadManager::resultMutex);
-                ThreadManager::foundPassword = combination;
+                std::lock_guard<PcoMutex> lock(manager.resultMutex);
+                manager.setFoundPassword(combination);
                 foundFlag.store(true);
-                ThreadManager::clearWorkQueue();
+                manager.clearWorkQueue();
                 return;
             }
         }
     }
-}
-
-bool MyThread::getNextWorkChunk(size_t& start, size_t& end) {
-    // Fetch a range of combinations to test from the workQueue.
-    std::lock_guard<PcoMutex> lock(ThreadManager::queueMutex);
-    if (ThreadManager::workQueue.empty()){
-        return false;
-    }
-
-    //Get new chunk
-    std::tie(start, end) = ThreadManager::workQueue.front();
-    ThreadManager::workQueue.pop();
-    return true;
 }
 
 // Compute the MD5 hash of a given combination.

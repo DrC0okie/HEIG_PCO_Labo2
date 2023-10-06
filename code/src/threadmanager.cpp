@@ -1,5 +1,4 @@
 #include <QVector>
-#include <iostream>
 #include <string>
 #include <vector>
 #include <atomic>
@@ -12,34 +11,14 @@
 #include "mythread.h"
 
 
-std::queue<std::pair<int, int>> ThreadManager::workQueue = std::queue<std::pair<int, int>>();
-PcoMutex ThreadManager::queueMutex = PcoMutex(); // Locks the access to the queue
-PcoMutex ThreadManager::resultMutex = PcoMutex(); // Locks the access to the Qstring
-QString ThreadManager::foundPassword = QString();
-
-/*
- * std::pow pour les long long unsigned int
- */
-long long unsigned int intPow (
-        long long unsigned int number,
-        long long unsigned int index)
-{
-    long long unsigned int i;
-
-    if (index == 0)
-        return 1;
-
-    long long unsigned int num = number;
-
-    for (i = 1; i < index; i++)
-        number *= num;
-
-    return number;
-}
-
 ThreadManager::ThreadManager(QObject *parent) :
     QObject(parent)
-{}
+{
+    workQueue = std::queue<std::pair<int, int>>();
+    foundPassword = QString();
+    totalChunks = 0;
+    chunkProgressFactor = 0.;
+}
 
 
 void ThreadManager::incrementPercentComputed(double percentComputed)
@@ -65,6 +44,9 @@ QString ThreadManager::startHacking(
     // Here, each thread should handle approximately 8 chunks
     size_t basicChunkSize = totalCombinations / (nbThreads * 8);
 
+    totalChunks = std::ceil((double)totalCombinations / (double)basicChunkSize);
+    chunkProgressFactor = 1. / totalChunks;
+
     // Container for the worker threads.
     std::vector<PcoThread> threads;
 
@@ -80,8 +62,8 @@ QString ThreadManager::startHacking(
     // Create and launch worker threads.
     for (size_t i = 0; i < nbThreads; i++) {
         threads.push_back(PcoThread(
-            [charset, hash, nbChars, &foundFlag]() {
-                MyThread::bruteForceThread(charset, nbChars, hash, foundFlag);
+            [this, charset, hash, nbChars, &foundFlag]() {
+                MyThread::bruteForceThread(*this, charset, nbChars, hash, foundFlag);
             }
         ));
     }
@@ -95,10 +77,31 @@ QString ThreadManager::startHacking(
     return foundPassword;
 }
 
+bool ThreadManager::getNextWorkChunk(size_t& start, size_t& end) {
+    // Fetch a range of combinations to test from the workQueue.
+    std::lock_guard<PcoMutex> lock(ThreadManager::queueMutex);
+    if (workQueue.empty()){
+        return false;
+    }
+
+    // Get new chunk
+    std::tie(start, end) = workQueue.front();
+    workQueue.pop();
+
+    // A chunk was done. Increment the progress bar.
+    incrementPercentComputed(chunkProgressFactor);
+
+    return true;
+}
+
+void ThreadManager::setFoundPassword(QString password) {
+    foundPassword = password;
+}
+
 void ThreadManager::clearWorkQueue() {
     std::lock_guard<PcoMutex> lock(ThreadManager::queueMutex);
     std::queue<std::pair<int, int>> emptyQueue;
-    std::swap(ThreadManager::workQueue, emptyQueue);
+    std::swap(workQueue, emptyQueue);
 }
 
 
