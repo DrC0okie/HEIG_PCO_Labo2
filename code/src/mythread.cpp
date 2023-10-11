@@ -25,7 +25,7 @@ QString BruteForceThread::computeHash(const QString& combination, const QString&
     QCryptographicHash md5(QCryptographicHash::Md5);
 
     md5.reset();
-    //md5.addData(salt.toLatin1());
+    md5.addData(salt.toLatin1());
     md5.addData(combination.toLatin1());
 
     // Convert the hash result to a hex string and return.
