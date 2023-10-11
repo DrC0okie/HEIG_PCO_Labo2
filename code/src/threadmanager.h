@@ -51,8 +51,8 @@ class ThreadManager : public QObject {
         std::atomic<bool>& flag;
     };
 
-    PcoMutex queueMutex;   // Locks the access to the queue
-    PcoMutex resultMutex;  // Locks the access to the result string
+    static PcoMutex queueMutex;   // Locks the access to the queue
+    static PcoMutex resultMutex;  // Locks the access to the result string
 
     /**
      * \brief ThreadManager Simple constructor

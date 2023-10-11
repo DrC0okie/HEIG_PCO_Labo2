@@ -1,4 +1,5 @@
 #include "threadmanager.h"
+#include <pcosynchro/pcomutex.h>
 
 #include <atomic>
 #include <QVector>
@@ -8,6 +9,8 @@
 #include "math.h"
 #include "mythread.h"
 
+PcoMutex ThreadManager::queueMutex = PcoMutex();
+PcoMutex ThreadManager::resultMutex = PcoMutex();
 
 ThreadManager::ThreadManager(QObject* parent)
     : QObject(parent) {
