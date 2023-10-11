@@ -38,6 +38,7 @@ class BruteForceThread {
      */
     static QString computeHash(const QString& combination);
 
+    static QString computeHash(const QString& combination, const QString& salt);
     /**
      * \brief Convert a number (id) to its corresponding combination in the charset.
      * \param id The number to be converted

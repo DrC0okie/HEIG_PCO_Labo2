@@ -1,8 +1,10 @@
 #include "threadmanager.h"
 #include <pcosynchro/pcomutex.h>
+#include <pcosynchro/pcothread.h>
 
 #include <atomic>
 #include <QVector>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -57,9 +59,10 @@ void ThreadManager::setupWork(size_t combinations, size_t size) {
     }
 }
 
-void ThreadManager::startWork(std::vector<PcoThread>& pool, ThreadParameters params, size_t count) {
+void ThreadManager::startWork(ThreadPool& pool, ThreadParameters params, size_t count) {
     for (size_t i = 0; i < count; i++) {
-        pool.push_back(PcoThread(BruteForceThread::run, params));
+        PcoThread* t = new PcoThread(BruteForceThread::run, params);
+        pool.push_back(std::unique_ptr<PcoThread>(t));
     }
 }
 
@@ -82,7 +85,7 @@ bool ThreadManager::getWork(size_t& start, size_t& end) {
 
 void ThreadManager::joinThreads(ThreadPool& pool) {
     for (auto& thread : pool) {
-        thread.join();
+        thread->join();
     }
 }
 

@@ -10,7 +10,7 @@ void BruteForceThread::run(ThreadManager::ThreadParameters params) {
         // Test each combination in the range.
         for (size_t i = start; i < end && !params.flag.load(); i++) {
             QString combination = idToCombination(i, params.charset, params.length);
-            QString hash        = computeHash(combination);
+            QString hash        = computeHash(combination, params.salt);
 
             // If a match is found, store the result, empty the queue and set the found flag.
             if (hash == params.hash) {
@@ -21,11 +21,11 @@ void BruteForceThread::run(ThreadManager::ThreadParameters params) {
     }
 }
 
-QString BruteForceThread::computeHash(const QString& combination) {
+QString BruteForceThread::computeHash(const QString& combination, const QString& salt) {
     QCryptographicHash md5(QCryptographicHash::Md5);
 
     md5.reset();
-    // md5.addData(salt.toLatin1());  // TODO: To be implemented
+    //md5.addData(salt.toLatin1());
     md5.addData(combination.toLatin1());
 
     // Convert the hash result to a hex string and return.

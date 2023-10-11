@@ -23,7 +23,7 @@
  * \brief The Thread container
  * This data structure is used to store the threads.
  */
-using ThreadPool = std::vector<PcoThread>;
+using ThreadPool = std::vector<std::unique_ptr<PcoThread>>;
 
 /**
  * \brief The ThreadManager class
