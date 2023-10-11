@@ -32,6 +32,9 @@ QString ThreadManager::startHacking(
     QString      hash,
     unsigned int nbChars,
     unsigned int nbThreads) {
+    // Reset foundPassword
+    foundPassword = QString();
+
     const size_t totalCombinations = std::pow(charset.size(), nbChars);
     const size_t basicChunkSize    = totalCombinations / (nbThreads * 8);
 
