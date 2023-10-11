@@ -44,8 +44,9 @@ QString BruteForceThread::idToCombination(size_t id, const QString& charset, siz
 }
 
 void BruteForceThread::handleHashFound(ThreadManager& manager, const QString& combination, std::atomic<bool>& foundFlag) {
-    std::lock_guard<PcoMutex> lock(manager.resultMutex);
+    ThreadManager::resultMutex.lock();
     manager.setFoundPassword(combination);
     foundFlag.store(true);
     manager.cancelWork();
+    ThreadManager::resultMutex.unlock();
 }

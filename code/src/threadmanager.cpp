@@ -66,6 +66,7 @@ void ThreadManager::startWork(std::vector<PcoThread>& pool, ThreadParameters par
 bool ThreadManager::getWork(size_t& start, size_t& end) {
     queueMutex.lock();  // This is the critical section.
     if (workQueue.empty()) {
+        queueMutex.unlock();
         return false;
     }
 
