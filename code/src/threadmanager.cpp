@@ -11,11 +11,10 @@
 #include "math.h"
 #include "mythread.h"
 
-PcoMutex ThreadManager::queueMutex = PcoMutex();
-PcoMutex ThreadManager::resultMutex = PcoMutex();
 
 ThreadManager::ThreadManager(QObject* parent)
     : QObject(parent) {
+    threadPool          = ThreadPool();
     workQueue           = std::queue<std::pair<int, int>>();
     foundPassword       = QString();
     totalChunks         = 0;
@@ -32,24 +31,32 @@ QString ThreadManager::startHacking(
     QString      hash,
     unsigned int nbChars,
     unsigned int nbThreads) {
-    // Reset foundPassword
+    // Reset member variables.
     foundPassword = QString();
+    threadPool.clear();
 
     const size_t totalCombinations = std::pow(charset.size(), nbChars);
-    const size_t basicChunkSize    = totalCombinations / (nbThreads * 8);
+    const size_t basicChunkSize    = totalCombinations / (nbThreads);
 
     totalChunks         = std::ceil((double)totalCombinations / (double)basicChunkSize);
     chunkProgressFactor = 1. / totalChunks;
+    double unitProgressFactor  = chunkProgressFactor / basicChunkSize;
+    size_t countForProgress = basicChunkSize / 16; // FIXME: tweak this value to adjust how much reporting we want
     setupWork(totalCombinations, basicChunkSize);
 
-    ThreadPool        threads;
     std::atomic<bool> foundFlag(false);
 
     // Create and launch worker threads.
-    ThreadParameters params = {*this, charset, salt, hash, nbChars, std::ref(foundFlag)};
-    startWork(threads, params, nbThreads);
+    for (size_t i = 0; i < nbThreads; i++) {
+        size_t start, end;
+        std::tie(start, end) = workQueue.front();
+        workQueue.pop();
+        ThreadParameters params = {*this, charset, salt, hash, nbChars, std::ref(foundFlag), start, end, unitProgressFactor, countForProgress};
+        PcoThread*       t      = new PcoThread(BruteForceThread::run, params);
+        threadPool.push_back(std::unique_ptr<PcoThread>(t));
+    }
 
-    joinThreads(threads);
+    joinThreads();
 
     // Return the found password.
     return foundPassword;
@@ -62,32 +69,18 @@ void ThreadManager::setupWork(size_t combinations, size_t size) {
     }
 }
 
-void ThreadManager::startWork(ThreadPool& pool, ThreadParameters params, size_t count) {
-    for (size_t i = 0; i < count; i++) {
-        PcoThread* t = new PcoThread(BruteForceThread::run, params);
-        pool.push_back(std::unique_ptr<PcoThread>(t));
-    }
+void ThreadManager::startWork(size_t count) {
 }
 
 bool ThreadManager::getWork(size_t& start, size_t& end) {
-    queueMutex.lock();  // This is the critical section.
-    if (workQueue.empty()) {
-        queueMutex.unlock();
-        return false;
-    }
-
-    std::tie(start, end) = workQueue.front();  // Get a new chunk. FIXME: should it include percentage incrementation ?
-    workQueue.pop();
-    queueMutex.unlock();
-
     // A chunk was done, increment the progress bar.
-    incrementPercentComputed(chunkProgressFactor);
+//    incrementPercentComputed(chunkProgressFactor);
 
     return true;
 }
 
-void ThreadManager::joinThreads(ThreadPool& pool) {
-    for (auto& thread : pool) {
+void ThreadManager::joinThreads() {
+    for (auto& thread : threadPool) {
         thread->join();
     }
 }
@@ -97,6 +90,9 @@ void ThreadManager::setFoundPassword(QString password) {
 }
 
 void ThreadManager::cancelWork() {
+    for (auto& thread : threadPool) {
+        thread->requestStop();
+    }
     std::queue<std::pair<int, int>> emptyQueue;
     std::swap(workQueue, emptyQueue);
 }

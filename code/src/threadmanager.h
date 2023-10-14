@@ -35,6 +35,7 @@ class ThreadManager : public QObject {
 
 
     private:
+    ThreadPool                      threadPool;
     std::size_t                     totalChunks;
     double                          chunkProgressFactor;
     std::queue<std::pair<int, int>> workQueue;  // Thread-safe variant needed
@@ -49,10 +50,11 @@ class ThreadManager : public QObject {
         QString            hash;
         unsigned int       length;
         std::atomic<bool>& flag;
+        size_t             start;
+        size_t             end;
+        double             percentPerHash;
+        size_t             countForProgress;
     };
-
-    static PcoMutex queueMutex;   // Locks the access to the queue
-    static PcoMutex resultMutex;  // Locks the access to the result string
 
     /**
      * \brief ThreadManager Simple constructor
@@ -91,7 +93,7 @@ class ThreadManager : public QObject {
      * \param params The parameters to be passed to the threads
      * \param count The number of threads to be created
      */
-    void startWork(ThreadPool& pool, ThreadParameters params, size_t count);
+    void startWork(size_t count);
 
     /**
      * \brief Returns the next chunk of work to be done by a thread.
@@ -108,7 +110,7 @@ class ThreadManager : public QObject {
      * \brief Joins all threads.
      * \param pool The thread pool to join threads from
      */
-    void joinThreads(ThreadPool& pool);
+    void joinThreads();
 
     /**
      * \brief Empties the work queue.
