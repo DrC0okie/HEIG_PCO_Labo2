@@ -46,19 +46,20 @@ QString ThreadManager::startHacking(
 
     std::atomic<bool> foundFlag(false);
 
+    BruteForceThread bft;
     // Create and launch worker threads.
     for (size_t i = 0; i < nbThreads; i++) {
         size_t start, end;
         std::tie(start, end) = workQueue.front();
         workQueue.pop();
         ThreadParameters params = {*this, charset, salt, hash, nbChars, std::ref(foundFlag), start, end, unitProgressFactor, countForProgress};
-        PcoThread*       t      = new PcoThread(BruteForceThread::run, params);
+        PcoThread*       t      = new PcoThread(&BruteForceThread::run, &bft, params); // Just as with std::thread, we need to pass the object along with the method
         threadPool.push_back(std::unique_ptr<PcoThread>(t));
     }
 
     joinThreads();
 
-    // Return the found password.
+    // Return the hash preimage.
     return foundPassword;
 }
 

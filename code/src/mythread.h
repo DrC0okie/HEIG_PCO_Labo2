@@ -27,7 +27,7 @@ class BruteForceThread {
      * The function divides the work among the threads, waits for them to finish,
      * and then returns the found password if any.
      */
-    static void run(ThreadManager::ThreadParameters params);
+    void run(ThreadManager::ThreadParameters params);
 
     private:
     /**
@@ -36,9 +36,9 @@ class BruteForceThread {
      * \param md5 A reference to the QCryptographicHash object
      * \return The MD5 hash of the combination
      */
-    static QString computeHash(const QString& combination);
+    QString computeHash(const QString& combination);
 
-    static QString computeHash(const QString& combination, const QString& salt);
+    QString computeHash(const QString& combination, const QString& salt);
     /**
      * \brief Convert a number (id) to its corresponding combination in the charset.
      * \param id The number to be converted
@@ -46,7 +46,7 @@ class BruteForceThread {
      * \param passwordLength The length of the password
      * \return The combination corresponding to the given number
      */
-    static QString idToCombination(size_t id, const QString& charset, size_t passwordLength);
+    QString idToCombination(size_t id, const QString& charset, size_t passwordLength);
 
     /**
      * \brief Handle the case where the hash has been found.
@@ -54,7 +54,7 @@ class BruteForceThread {
      * \param combination The combination that was found
      * \param foundFlag An atomic flag that indicates whether the password has been found
      */
-    static void handleHashFound(ThreadManager& manager, const QString& combination, std::atomic<bool>& foundFlag);
+    void handleHashFound(ThreadManager& manager, const QString& combination, std::atomic<bool>& foundFlag);
 };
 
 #endif  // MYTHREAD_H
