@@ -1,10 +1,11 @@
 #include "threadmanager.h"
+
 #include <pcosynchro/pcomutex.h>
 #include <pcosynchro/pcothread.h>
 
 #include <atomic>
-#include <QVector>
 #include <memory>
+#include <QVector>
 #include <string>
 #include <vector>
 
@@ -21,10 +22,6 @@ ThreadManager::ThreadManager(QObject* parent)
     chunkProgressFactor = 0.;
 }
 
-void ThreadManager::incrementPercentComputed(double percentComputed) {
-    emit sig_incrementPercentComputed(percentComputed);
-}
-
 QString ThreadManager::startHacking(
     QString      charset,
     QString      salt,
@@ -38,10 +35,10 @@ QString ThreadManager::startHacking(
     const size_t totalCombinations = std::pow(charset.size(), nbChars);
     const size_t basicChunkSize    = totalCombinations / (nbThreads);
 
-    totalChunks         = std::ceil((double)totalCombinations / (double)basicChunkSize);
-    chunkProgressFactor = 1. / totalChunks;
-    double unitProgressFactor  = chunkProgressFactor / basicChunkSize;
-    size_t countForProgress = basicChunkSize / 16; // FIXME: tweak this value to adjust how much reporting we want
+    totalChunks               = std::ceil((double)totalCombinations / (double)basicChunkSize);
+    chunkProgressFactor       = 1. / totalChunks;
+    double unitProgressFactor = chunkProgressFactor / basicChunkSize;
+    size_t countForProgress   = basicChunkSize / 16;  // FIXME: tweak this value to adjust how much reporting we want
     setupWork(totalCombinations, basicChunkSize);
 
     std::atomic<bool> foundFlag(false);
@@ -52,8 +49,13 @@ QString ThreadManager::startHacking(
         size_t start, end;
         std::tie(start, end) = workQueue.front();
         workQueue.pop();
-        ThreadParameters params = {*this, charset, salt, hash, nbChars, std::ref(foundFlag), start, end, unitProgressFactor, countForProgress};
-        PcoThread*       t      = new PcoThread(&BruteForceThread::run, &bft, params); // Just as with std::thread, we need to pass the object along with the method
+        BruteForceThread::Parameters params = {
+            std::bind(&ThreadManager::setFoundPassword, this, std::placeholders::_1),
+            std::bind(&ThreadManager::incrementProgress, this, std::placeholders::_1),
+            charset, salt, hash, nbChars, std::ref(foundFlag), start, end, unitProgressFactor, countForProgress
+        };
+
+        PcoThread* t = new PcoThread(&BruteForceThread::run, &bft, params);  // Just as with std::thread, we need to pass the object along with the method
         threadPool.push_back(std::unique_ptr<PcoThread>(t));
     }
 
@@ -73,13 +75,6 @@ void ThreadManager::setupWork(size_t combinations, size_t size) {
 void ThreadManager::startWork(size_t count) {
 }
 
-bool ThreadManager::getWork(size_t& start, size_t& end) {
-    // A chunk was done, increment the progress bar.
-//    incrementPercentComputed(chunkProgressFactor);
-
-    return true;
-}
-
 void ThreadManager::joinThreads() {
     for (auto& thread : threadPool) {
         thread->join();
@@ -88,6 +83,7 @@ void ThreadManager::joinThreads() {
 
 void ThreadManager::setFoundPassword(QString password) {
     foundPassword = password;
+    cancelWork();
 }
 
 void ThreadManager::cancelWork() {
@@ -96,4 +92,8 @@ void ThreadManager::cancelWork() {
     }
     std::queue<std::pair<int, int>> emptyQueue;
     std::swap(workQueue, emptyQueue);
+}
+
+void ThreadManager::incrementProgress(size_t count) {
+    emit sig_incrementPercentComputed(0);
 }

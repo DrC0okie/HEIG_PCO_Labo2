@@ -1,44 +1,62 @@
 /**
-  \file mythread.h
-  \authors Timothée Van Hove <timothe.vanhove@heig-vd.ch>, Aubry Mangold <aubry.mangold@heig-vd.ch>
-  \date 08.10.2023
-  \brief Classe de brute-forcing de hash MD5.
-*/
+ * \file mythread.h
+ * \author Timothée Van Hove <timothe.vanhove@heig-vd.ch>
+ * \author Aubry Mangold <aubry.mangold@heig-vd.ch>
+ * \date 08.10.2023
+ * \brief MD5 brute forcing thread class.
+ */
 
 #ifndef MYTHREAD_H
 #define MYTHREAD_H
 
 #include <atomic>
+#include <functional>
 #include <QString>
 
 #include "threadmanager.h"
 
+/**
+ * \brief The BruteForceThread class
+ * \details This class is used to reverse an md5 hash by brute force.
+ */
 class BruteForceThread {
     public:
+
+    // TODO: add documentation
+    struct Parameters {
+        std::function<void(QString)>       passwordFoundCallback;
+        std::function<void(size_t)>        progressCallback;
+        QString            charset;
+        QString            salt;
+        QString            hash;
+        unsigned int       length;
+        std::atomic<bool>& flag;
+        size_t             start;
+        size_t             end;
+        double             percentPerHash;
+        size_t             countForProgress;
+    };
+
     /**
      * \brief Run an MD5 brute force algorithm on a given range of combinations.
-     * \param manager A reference to the ThreadManager object
-     * \param charset A string containing all the characters that can be used to form a hash
-     * \param desiredLength The length of the password
-     * \param targetHash The hash to be reversed
-     * \param foundFlag An atomic flag that indicates whether the password has been found
-     *
-     * This function starts the brute force hacking process using multiple threads.
+     * \param params The parameters for the brute force algorithm.
+     * \details This function starts the brute force hacking process using multiple threads.
      * The function divides the work among the threads, waits for them to finish,
      * and then returns the found password if any.
+     * \remark Passing parameters by copy might be slower than passing by reference but since
+     * we do not create many new threads after this function is called, it is not a concern.
      */
-    void run(ThreadManager::ThreadParameters params);
+    void run(Parameters params);
 
     private:
     /**
      * \brief Compute the MD5 hash of a given combination.
      * \param combination The combination to be hashed
-     * \param md5 A reference to the QCryptographicHash object
+     * \param salt The salt to be used
      * \return The MD5 hash of the combination
      */
-    QString computeHash(const QString& combination);
-
     QString computeHash(const QString& combination, const QString& salt);
+
     /**
      * \brief Convert a number (id) to its corresponding combination in the charset.
      * \param id The number to be converted
@@ -47,14 +65,6 @@ class BruteForceThread {
      * \return The combination corresponding to the given number
      */
     QString idToCombination(size_t id, const QString& charset, size_t passwordLength);
-
-    /**
-     * \brief Handle the case where the hash has been found.
-     * \param manager The ThreadManager object
-     * \param combination The combination that was found
-     * \param foundFlag An atomic flag that indicates whether the password has been found
-     */
-    void handleHashFound(ThreadManager& manager, const QString& combination, std::atomic<bool>& foundFlag);
 };
 
 #endif  // MYTHREAD_H

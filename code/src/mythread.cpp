@@ -3,19 +3,18 @@
 #include <QCryptographicHash>
 
 
-void BruteForceThread::run(ThreadManager::ThreadParameters params) {
-    // Continue while the password hasn't been found.
-    while (!params.flag.load()) {
-        // Test each combination in the range.
-        for (size_t i = params.start; i < params.end && !params.flag.load(); i++) {
-            QString combination = idToCombination(i, params.charset, params.length);
-            QString hash        = computeHash(combination, params.salt);
+void BruteForceThread::run(Parameters params) {
+    // Test each combination in the parametrized range while the preimage hasn't been found
+    // by any thread.
+    for (size_t i = params.start; i < params.end && !params.flag.load(); i++) {
+        QString combination = idToCombination(i, params.charset, params.length);
+        QString hash        = computeHash(combination, params.salt);
 
-            // If a match is found, store the result, empty the queue and set the found flag.
-            if (hash == params.hash) {
-                handleHashFound(params.manager, combination, params.flag);
-                return;
-            }
+        // If a match is found, store the result, empty the queue and set the found flag.
+        if (hash == params.hash) {
+            params.flag.store(true);
+            params.passwordFoundCallback(combination);
+            return;
         }
     }
 }
@@ -40,10 +39,4 @@ QString BruteForceThread::idToCombination(size_t id, const QString& charset, siz
     }
 
     return result;
-}
-
-void BruteForceThread::handleHashFound(ThreadManager& manager, const QString& combination, std::atomic<bool>& foundFlag) {
-    manager.setFoundPassword(combination);
-    foundFlag.store(true);
-    manager.cancelWork();
 }

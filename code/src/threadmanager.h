@@ -1,13 +1,13 @@
 /**
-  \file threadmanager.h
-  \author Yann Thoma
-  \date 24.02.2017
-  \brief Classe pour reverser un hash md5 par brute force.
-
-
-  Ce fichier contient la définition de la classe ThreadManager, qui permet de
-  reverser un hash md5 par brute force.
-*/
+ * \file threadmanager.h
+ * \author Yann Thoma
+ * \author Timothée Van Hove <timothe.vanhove@heig-vd.ch>
+ * \author Aubry Mangold <aubry.mangold@heig-vd.ch>
+ * \date Created on 24.02.2017. Last modified on 14.10.2023.
+ * \brief Classe pour reverser un hash md5 par brute force.
+ * \details  Ce fichier contient la définition de la classe ThreadManager, qui permet de
+ * reverser un hash md5 par brute force.
+ */
 
 #ifndef THREADMANAGER_H
 #define THREADMANAGER_H
@@ -21,18 +21,16 @@
 
 /**
  * \brief The Thread container
- * This data structure is used to store the threads.
+ * \details This data structure is used to store the threads.
  */
 using ThreadPool = std::vector<std::unique_ptr<PcoThread>>;
 
 /**
  * \brief The ThreadManager class
- *
- * This class manages threads used to reverse an md5 hash by brute force.
+ * \details This class manages threads used to reverse an md5 hash by brute force.
  */
 class ThreadManager : public QObject {
     Q_OBJECT
-
 
     private:
     ThreadPool                      threadPool;
@@ -42,20 +40,6 @@ class ThreadManager : public QObject {
     QString                         foundPassword;
 
     public:
-    // Thread parameters
-    struct ThreadParameters {
-        ThreadManager&     manager;
-        QString            charset;
-        QString            salt;
-        QString            hash;
-        unsigned int       length;
-        std::atomic<bool>& flag;
-        size_t             start;
-        size_t             end;
-        double             percentPerHash;
-        size_t             countForProgress;
-    };
-
     /**
      * \brief ThreadManager Simple constructor
      * \param parent QObject parent
@@ -96,17 +80,6 @@ class ThreadManager : public QObject {
     void startWork(size_t count);
 
     /**
-     * \brief Returns the next chunk of work to be done by a thread.
-     * \param start The start index of the range
-     * \param end The end index of the range
-     * \return True if there is work to be done, false otherwise
-     *
-     * This is the critical section of the program because multiple threads can
-     * ask for work at the same time.
-     */
-    bool getWork(size_t& start, size_t& end);
-
-    /**
      * \brief Joins all threads.
      * \param pool The thread pool to join threads from
      */
@@ -124,10 +97,10 @@ class ThreadManager : public QObject {
     void setFoundPassword(QString password);
 
     /**
-     * \brief Increment the progress bar by a given factor.
-     * \param percentComputed double The factor by which to increment the progress bar
+     * \brief Increment the progress of the attack.
+     * \param count The number of hashes that have been computed
      */
-    void incrementPercentComputed(double percentComputed);
+    void incrementProgress(size_t count);
 
     signals:
     /**
