@@ -4,6 +4,8 @@
  * \author Aubry Mangold <aubry.mangold@heig-vd.ch>
  * \date 08.10.2023
  * \brief MD5 brute forcing thread class.
+ * \details This class is used by a thread manager to reverse an md5 hash by brute force
+ * in a multithreaded environment.
  */
 
 #ifndef MYTHREAD_H
@@ -13,7 +15,6 @@
 #include <functional>
 #include <QString>
 
-#include "threadmanager.h"
 
 /**
  * \brief The BruteForceThread class
@@ -21,28 +22,29 @@
  */
 class BruteForceThread {
     public:
-
-    // TODO: add documentation
+    /**
+     * \brief The Parameters struct
+     * \details This data structure is used to pass parameters to the thread.
+     */
     struct Parameters {
-        std::function<void(QString)>       passwordFoundCallback;
-        std::function<void(size_t)>        progressCallback;
-        QString            charset;
-        QString            salt;
-        QString            hash;
-        unsigned int       length;
-        std::atomic<bool>& flag;
-        size_t             start;
-        size_t             end;
-        double             percentPerHash;
-        size_t             countForProgress;
+        std::function<void(QString)> passwordFoundCallback;
+        std::function<void()>        progressCallback;
+        QString                      charset;
+        QString                      salt;
+        QString                      hash;
+        unsigned int                 length;
+        std::atomic<bool>&           flag;
+        size_t                       rangeStart;
+        size_t                       rangeEnd;
+        size_t                       countForProgress;
     };
 
     /**
      * \brief Run an MD5 brute force algorithm on a given range of combinations.
-     * \param params The parameters for the brute force algorithm.
-     * \details This function starts the brute force hacking process using multiple threads.
-     * The function divides the work among the threads, waits for them to finish,
-     * and then returns the found password if any.
+     * \param params The parameters for the brute force algorithm
+     *
+     * \details This function starts the brute force hacking process on a given range of
+     * combinations. It will stop as soon as the preimage is found or the range is exhausted.
      * \remark Passing parameters by copy might be slower than passing by reference but since
      * we do not create many new threads after this function is called, it is not a concern.
      */

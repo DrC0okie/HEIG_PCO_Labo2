@@ -4,9 +4,10 @@
  * \author Timothée Van Hove <timothe.vanhove@heig-vd.ch>
  * \author Aubry Mangold <aubry.mangold@heig-vd.ch>
  * \date Created on 24.02.2017. Last modified on 14.10.2023.
- * \brief Classe pour reverser un hash md5 par brute force.
- * \details  Ce fichier contient la définition de la classe ThreadManager, qui permet de
- * reverser un hash md5 par brute force.
+ * \brief MD5 brute forcing thread manager class.
+ * \details This class manages threads to reverse an md5 hash by brute force. Work
+ * is split into chunks and each thread is assigned a chunk to work on. The
+ * manager is responsible for creating, starting and joining the threads.
  */
 
 #ifndef THREADMANAGER_H
@@ -19,44 +20,60 @@
 #include <QString>
 #include <queue>
 
-/**
- * \brief The Thread container
- * \details This data structure is used to store the threads.
- */
-using ThreadPool = std::vector<std::unique_ptr<PcoThread>>;
+#include "mythread.h"
+
 
 /**
  * \brief The ThreadManager class
  * \details This class manages threads used to reverse an md5 hash by brute force.
  */
 class ThreadManager : public QObject {
-    Q_OBJECT
+    public:
+    /**
+     * \brief The PcoThread container
+     * \details This data structure is used to store the threads used by the class.
+     */
+    typedef std::vector<std::unique_ptr<PcoThread>> ThreadPool;
+
+    /**
+     * \brief The work queue
+     * \details This data structure is used to store the work to be done by the threads.
+     */
+    typedef std::queue<std::pair<int, int>> WorkQueue;
 
     private:
-    ThreadPool                      threadPool;
-    std::size_t                     totalChunks;
-    double                          chunkProgressFactor;
-    std::queue<std::pair<int, int>> workQueue;  // Thread-safe variant needed
-    QString                         foundPassword;
+    Q_OBJECT
+
+    WorkQueue   workQueue;
+    ThreadPool  threadPool;
+    std::size_t threadCount;
+    std::size_t hashesToCompute;
+    std::size_t countForProgress;
+    QString     foundPassword;
 
     public:
     /**
      * \brief ThreadManager Simple constructor
      * \param parent QObject parent
      */
-    ThreadManager(QObject* parent);
+    explicit ThreadManager(QObject *parent);
 
     /**
-     * \brief startHacking tâche qui s'occupe de trouver le hash md5.
-     * \param charset QString tous les caractères possibles composant le mot de
-     * passe
-     * \param salt QString sel qui permet de modifier dynamiquement le hash
-     * \param hash QString hash à reverser
-     * \param nbChars taille du mot de passe
-     * \param nbThreads nombre de threads qui doivent reverser le hash
-     * \return Le hash trouvé, ou une chaine vide sinon
+     * \brief Reset the instance to a clean state.
+     */
+    void resetInstance();
+
+    /**
+     * \brief startHacking Start the brute force attack.
+     * \param charset The alphabet to be used for the attack
+     * \param salt The salt to be used for the attack
+     * \param hash The hash to be reversed
+     * \param nbChars The length of the password
+     * \param nbThreads The number of threads to be used
+     * \return The hash preimage if found, an empty string otherwise
      *
-     * Cette fonction exécute réellement la recherche.
+     * \details This function starts the brute force hacking process. It splits the
+     * work into chunks and starts the threads. It is called from the GUI class.
      */
     QString startHacking(
         QString      charset,
@@ -68,20 +85,17 @@ class ThreadManager : public QObject {
     /**
      * \brief Setup the work queue by dividing the work into chunks.
      * \param combinations The total number of combinations
-     * \param size The size of a chunk
      */
-    void setupWork(size_t combinations, size_t size);
+    void setupWork(size_t combinations);
 
     /**
      * \brief Setup and start the threads.
      * \param params The parameters to be passed to the threads
-     * \param count The number of threads to be created
      */
-    void startWork(size_t count);
+    void startWork(BruteForceThread::Parameters params);
 
     /**
      * \brief Joins all threads.
-     * \param pool The thread pool to join threads from
      */
     void joinThreads();
 
@@ -92,15 +106,14 @@ class ThreadManager : public QObject {
 
     /**
      * \brief Set the found password.
-     * \param password QString mot de passe trouvé
+     * \param password QString The found password
      */
     void setFoundPassword(QString password);
 
     /**
-     * \brief Increment the progress of the attack.
-     * \param count The number of hashes that have been computed
+     * \brief Increment the progress of the attack by a given factor.
      */
-    void incrementProgress(size_t count);
+    void incrementProgress();
 
     signals:
     /**

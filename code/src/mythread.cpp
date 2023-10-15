@@ -4,11 +4,22 @@
 
 
 void BruteForceThread::run(Parameters params) {
+    size_t hashesComputed = 0;
+
     // Test each combination in the parametrized range while the preimage hasn't been found
     // by any thread.
-    for (size_t i = params.start; i < params.end && !params.flag.load(); i++) {
+    for (size_t i = params.rangeStart; i < params.rangeEnd; i++) {
+        if (params.flag.load()) {
+            return;  // Another thread found the preimage.
+        }
+
         QString combination = idToCombination(i, params.charset, params.length);
         QString hash        = computeHash(combination, params.salt);
+
+        // Call the progress callback every countForProgress hashes.
+        if (++hashesComputed % params.countForProgress == 0) {
+            params.progressCallback();
+        }
 
         // If a match is found, store the result, empty the queue and set the found flag.
         if (hash == params.hash) {
