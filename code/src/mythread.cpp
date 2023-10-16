@@ -1,14 +1,22 @@
+/**
+ * \file mythread.cpp
+ * \author Timothée Van Hove <timothe.vanhove@heig-vd.ch>
+ * \author Aubry Mangold <aubry.mangold@heig-vd.ch>
+ * \date Last modified on 16.10.2023.
+ * \brief Implementation of the BruteForceThread class.
+ */
+
 #include "mythread.h"
 
-#include <QCryptographicHash>
+#include <QCryptographicHash>  // QCryptographicHash, QCryptographicHash::Md5
 
 
 void BruteForceThread::run(Parameters params) {
-    size_t hashesComputed = 0;
+    std::size_t hashesComputed = 0;
 
-    // Test each combination in the parametrized range while the preimage hasn't been found
-    // by any thread.
-    for (size_t i = params.rangeStart; i < params.rangeEnd; i++) {
+    // Test each combination in the parametrized range while the preimage hasn't
+    // been found by any thread.
+    for (std::size_t i = params.rangeStart; i < params.rangeEnd; i++) {
         if (params.flag.load()) {
             return;  // Another thread found the preimage.
         }
@@ -21,7 +29,8 @@ void BruteForceThread::run(Parameters params) {
             params.progressCallback();
         }
 
-        // If a match is found, store the result, empty the queue and set the found flag.
+        // If a match is found, store the result, empty the queue and set the
+        // found flag.
         if (hash == params.hash) {
             params.flag.store(true);
             params.passwordFoundCallback(combination);
@@ -30,7 +39,8 @@ void BruteForceThread::run(Parameters params) {
     }
 }
 
-QString BruteForceThread::computeHash(const QString& combination, const QString& salt) {
+QString BruteForceThread::computeHash(const QString& combination,
+                                      const QString& salt) {
     QCryptographicHash md5(QCryptographicHash::Md5);
 
     md5.reset();
@@ -41,7 +51,9 @@ QString BruteForceThread::computeHash(const QString& combination, const QString&
     return md5.result().toHex();
 }
 
-QString BruteForceThread::idToCombination(size_t id, const QString& charset, size_t passwordLength) {
+QString BruteForceThread::idToCombination(std::size_t    id,
+                                          const QString& charset,
+                                          std::size_t    passwordLength) {
     QString result(passwordLength, Qt::Uninitialized);  // Preallocate string
 
     for (int pos = passwordLength - 1; pos >= 0; --pos) {

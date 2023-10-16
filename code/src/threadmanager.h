@@ -13,15 +13,16 @@
 #ifndef THREADMANAGER_H
 #define THREADMANAGER_H
 
-#include <pcosynchro/pcomutex.h>
-#include <pcosynchro/pcothread.h>
+#include <pcosynchro/pcothread.h>  // PcoThread
 
-#include <memory>
-#include <QObject>
-#include <QString>
-#include <queue>
+#include <memory>   // std::unique_ptr, std::make_unique
+#include <QObject>  // QObject
+#include <QString>  // QString
+#include <queue>    // std::queue
+#include <utility>  // std::pair
+#include <vector>   // std::vector
 
-#include "mythread.h"
+#include "mythread.h"  // BruteForceThread::Parameters
 
 
 /**
@@ -93,7 +94,7 @@ class ThreadManager : public QObject {
      * \brief Setup the work queue by dividing the work into chunks.
      * \param combinations The total number of combinations
      */
-    void setupWork(size_t combinations);
+    void setupWork(std::size_t combinations);
 
     /**
      * \brief Setup and start the threads.

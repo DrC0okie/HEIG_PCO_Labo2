@@ -11,9 +11,9 @@
 #ifndef MYTHREAD_H
 #define MYTHREAD_H
 
-#include <atomic>
-#include <functional>
-#include <QString>
+#include <atomic>      // std::atomic
+#include <functional>  // std::function
+#include <QString>     // QString
 
 
 /**
@@ -44,9 +44,9 @@ class BruteForceThread {
         QString                      hash;
         unsigned int                 length;
         std::atomic<bool>&           flag;
-        size_t                       rangeStart;
-        size_t                       rangeEnd;
-        size_t                       countForProgress;
+        std::size_t                  rangeStart;
+        std::size_t                  rangeEnd;
+        std::size_t                  countForProgress;
     };
 
     /**
@@ -76,7 +76,7 @@ class BruteForceThread {
      * \param passwordLength The length of the password
      * \return The combination corresponding to the given number
      */
-    QString idToCombination(size_t id, const QString& charset, size_t passwordLength);
+    QString idToCombination(std::size_t id, const QString& charset, std::size_t passwordLength);
 };
 
 #endif  // MYTHREAD_H
