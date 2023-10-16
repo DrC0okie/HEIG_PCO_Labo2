@@ -56,13 +56,70 @@ However, on close analysis, we concluded that the efficiency gains from this met
 
 Consequently, we decided to implement the more straightforward partitioning strategy.
 
-
-
 ## Performance tests
 
-TODO
+The performance of the hash cracker is measured on a 4 character salted password and with a different number of threads. The salt used throughout the tests is `pco23`.
+The tests were performed on a 8-core AMD Ryzen 7 PRO 6850U CPU (Machine 1) and on a <config> CPU (Machine 2).
+
+### Middle of the search space
+The difficulty lies in the fact that the password must be situated in the middle of the search space for results to be meaningful.
+Since the search space is split in equal parts depending on the number of threads, the combination in the middle of the search space is not necessarily in the middle of the search space of each thread. A python script was used to find the password in the middle of the search space of each thread. The script is available in the root folder.
+
+The following permutations indices were used to generate the hashes depending on the number of threads:
+
+| Number of threads | Permutation index | Salted hash                      |
+|-------------------|-------------------|----------------------------------|
+| 1                 | 9487368           | 242164efb8d1aeea6bd78b5ae5066cfd |
+| 2                 | 4743684           | b08c257e8d52e04be4af94f85022c760 |
+| 4                 | 2371842           | 1203fea68fa935aaa742147ac62e9892 |
+| 8                 | 1185921           | 249a2cd75b430753351bf0edd7c837cd |
+| 16                | 592960            | 0b5bcb75de079a1389cb1a7db0fcb9bf |
+| 32                | 296480            | 9dab8af4e8b4e02232f6a5a784fe252a |
 
 
+Running the brute force program with the thread/hash pairs produces the following results:
+
+| Number of threads | Time (ms) |
+|-------------------|-----------|
+| 1                 | 2612      |
+| 2                 | 1368      |
+| 4                 | 730       |
+| 8                 | 423       |
+| 16                | 399       |
+| 32                | 396       |
+
+### Beginning and end the search space
+For good measure, the tests have also been run on the first and last permutations of the alphabet (namely `aaaa` and `****`). The following hashes were used:
+
+| Position  | Salted hash                      |
+|-----------|----------------------------------|
+| Beginning | 518f6663077103d3242cf0d537da17c8 |
+| End       | 635e25bf87af5d325eff6806bd405f5c |
+
+The results for a password situated at the beginning of the search space are as follows:
+
+| Number of threads | Time (ms) |
+|-------------------|-----------|
+| 1                 | 0         |
+| 2                 | 0         |
+| 4                 | 0         |
+| 8                 | 0         |
+| 16                | 1         |
+| 32                | 2         |
+
+The results for a password situated the end of the search space are as follows:
+
+| Number of threads | Time (ms) |
+|-------------------|-----------|
+| 1                 | 5314      |
+| 2                 | 2886      |
+| 4                 | 1558      |
+| 8                 | 910       |
+| 16                | 852       |
+| 32                | 916       |
+
+
+TODO: should we test with passwords situated __almost__ at the beginning/end of the search space?
 
 ## Tested scenarios
 
