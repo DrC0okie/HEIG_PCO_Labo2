@@ -6,17 +6,17 @@
 
 
 
-## Introduction
+## 1. Introduction
 
 We are interested in developing a program capable of cracking an md5 hash to recover a password. An application has been provided to us, but suffers from some performance shortcomings, as it is single-threaded. So the goal of this lab is to enhance the performance of the application by implementing a multi-threaded process.
 
 
 
-## How to speed-up the hacking process?
+## 2. How to speed-up the hacking process?
 
 It is evident that the program primary function is to evaluate every possible combinations. This, being a computationally heavy task, we can leverage concurrency to speed-up the process by allowing simultaneous evaluation of distinct combinations.
 
-### Partitioning Strategy
+### 2.1 Partitioning Strategy
 
 In order to multi-thread the workload, we must implement a good partitioning startegy. Every thread must have a fraction of the workload to compute.
 
@@ -24,7 +24,7 @@ In order to multi-thread the workload, we must implement a good partitioning sta
 
 The `idToCombination` function will then take the partition the thread is assigned to and return every unique combination in this space.The logic behind this function is grounded in the concept of base conversion. Just as we can represent numbers in base-10 or base-16, the function represents numbers in a base equivalent to the size of the charset. This ensures that every unique ID corresponds to a unique combination of characters, making the process efficient for brute-forcing.
 
-### Communication and Feedback
+### 2.2 Communication and Feedback
 
 While the tasks are separate, it is crucial to maintain a communication channel to the main thread. As soon as a thread finds the correct combination, it need to relay this information to prevent other threads from continuing redundant computations. 
 
@@ -39,7 +39,7 @@ Initially, we though that the explicit termination would suffice. But we observe
 
 
 
-## Workflow
+## 3. Workflow
 
 Here is a simplified representation of the workflow:
 
@@ -61,7 +61,7 @@ The process is finalized with the `endHacking()` function, which handles any nec
 
 
 
-## From Work Stealing to Partitioning
+## 4. From Work Stealing to Partitioning
 
 In our preliminary design, we employed the "work stealing" strategy, where each thread would fetch a new chunk of work from a shared queue upon completing its segment. To facilitate this, the combination space was fragmented into smaller units, all stored within a concurrency-safe queue accessible by all threads.
 
@@ -69,12 +69,12 @@ However, on close analysis, we concluded that the efficiency gains from this met
 
 That's why, we decided to implement the more straightforward partitioning strategy.
 
-## Performance tests
+## 5. Performance tests
 
 The performance of the hash cracker is measured on a 4 character salted password and with a different number of threads. The salt used throughout the tests is `pco23`.
 The tests were performed on a 8-core AMD Ryzen 7 PRO 6850U CPU (Machine 1) and on a 4-core Intel Core i7-10510U CPU (Machine 2).
 
-### Middle of the search space
+### 5.1 Middle of the search space
 The difficulty lies in the fact that the password must be situated in the middle of the search space for results to be meaningful.
 Since the search space is split in equal parts depending on the number of threads, the combination in the middle of the search space is not necessarily in the middle of the search space of each thread. A python script was used to find the password in the middle of the search space of each thread. The script is available in the root folder.
 
@@ -101,7 +101,7 @@ Running the brute force program with the thread/hash pairs produces the followin
 | 16                | 399       |
 | 32                | 396       |
 
-### Beginning and end the search space
+### 5.2 Beginning and end the search space
 For good measure, the tests have also been run on the first and last permutations of the alphabet (namely `aaaa` and `****`). The following hashes were used:
 
 | Position  | Salted hash                      |
@@ -134,7 +134,7 @@ The results for a password situated the end of the search space are as follows:
 
 TODO: should we test with passwords situated __almost__ at the beginning/end of the search space?
 
-## Tested scenarios
+## 6. Tested scenarios
 
 All the scenarios below have been checked:
 
