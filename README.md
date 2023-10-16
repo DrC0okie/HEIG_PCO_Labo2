@@ -14,15 +14,28 @@ We are interested in developing a program capable of cracking an md5 hash to rec
 
 ## How to speed-up the hacking process?
 
-It is evident that the hacking program's primary function is to evaluate every possible combinations. This, being a computationally heavy task, we can leverage concurrency to speed-up the process by allowing simultaneous evaluation of distinct combinations.
+It is evident that the program primary function is to evaluate every possible combinations. This, being a computationally heavy task, we can leverage concurrency to speed-up the process by allowing simultaneous evaluation of distinct combinations.
 
-**Partitioning Strategy:** The total workload, which is the entire space of combinations, is divided into distinct segments. This approach is chosen over dynamic allocation because it reduces overhead. Each thread is assigned a specific range of combinations to evaluate. This range is determined by a unique identifier, which ensures no two threads work on the same combination, eliminating redundancy and the potential for race conditions.
+### Partitioning Strategy
 
-**Hash Computation:** The nature of hash computation is inherently independent for each combination. This makes it particularly suitable for multi-threading, as no thread needs to wait for data or results from another. Moreover, with the distinct segments, each thread can compute its hash values independently without any synchronization overhead.
+In order to multi-thread the workload, we must implement a good partitioning startegy. Every thread must have a fraction of the workload to compute.
 
-**Communication and Feedback:** While the tasks were separate, it is crucial to maintain a communication channel to the main thread. As soon as a thread finds the correct combination, it needed to relay this information to prevent other threads from continuing redundant computations. This immediate feedback mechanism not only accelerates the overall process but also conserves computational resources.
+**Our solution**: The total workload, which is the entire space of combinations, is divided into distinct segments. This approach is chosen over dynamic allocation because it reduces overhead. Each thread is assigned a specific range of combinations to evaluate. This range is determined by a unique identifier, which ensures no two threads work on the same combination, eliminating redundancy and the potential for race conditions.
 
-**Handling Skewness:** Although the division was designed to be uniform, computational skewness (if some threads finish earlier than others), was a consideration. The distinct segments method alleviates this by ensuring that each thread has a nearly equal amount of work. While there might be minor variations due to system specifics, the overall efficiency is maintained.
+The `idToCombination` function will then take the partition the thread is assigned to and return every unique combination in this space.The logic behind this function is grounded in the concept of base conversion. Just as we can represent numbers in base-10 or base-16, the function represents numbers in a base equivalent to the size of the charset. This ensures that every unique ID corresponds to a unique combination of characters, making the process efficient for brute-forcing.
+
+### Communication and Feedback
+
+While the tasks are separate, it is crucial to maintain a communication channel to the main thread. As soon as a thread finds the correct combination, it need to relay this information to prevent other threads from continuing redundant computations. 
+
+**Our solution**: 
+
+1. We use an atomic global flag that is checked by all threads. The flag serves as an immediate signaling mechanism. Other threads, in  the course of their execution, check this flag before processing another chunk of combinations.
+2. We use an explicit termination with the `cancelWork` function. It provides a means to actively and explicitly instruct other threads to cease their operations.
+
+**Isn't those 2 mechanisms redundant?**
+
+Initially, we though that the explicit termination would suffice. But we observed that without the atomic flag, the overall performance was degraded. So without knowing exactly why, we decided to keep the atomic flag in addition to the explicit termination.
 
 
 
@@ -36,7 +49,7 @@ Here is a simplified representation of the workflow:
 
 The execution begins with the `MainWindow` initiating the `prepareHacking()` function, which sets the initial parameters and readies the environment for the upcoming multithreading operations.
 
-The control is then transferred to the `ThreadManager` via the `startHacking()` function. Here, the primary responsibility is to manage and coordinate the multi-threaded operations. Within `ThreadManager`, the `setUpWork()` method is responsible for allocating distinct segments of the task to individual threads, ensuring no overlap or redundancy. This distribution utilizes the potential of concurrency to enhance efficiency.
+The control is then transferred to the `ThreadManager` via the `startHacking()` function. Here, the primary responsibility is to manage and coordinate the multi-threaded operations. Within `ThreadManager`, the `setUpWork()` method is responsible for allocating distinct segments of the task to individual threads, ensuring no overlap or redundancy.
 
 Once the task distribution is complete, the `startWork()` method triggers each thread to execute its assigned operations. The `run()` function is executed, which sequentially goes through the steps of hacking. It starts by generating combinations using `idToCombination()`, followed by the computation of the hash with `computeHash()`.
 
@@ -54,7 +67,7 @@ In our preliminary design, we employed the "work stealing" strategy, where each 
 
 However, on close analysis, we concluded that the efficiency gains from this method were minimal, amounting to about 10-20 ms speed-up for a 4-character password. Given this performance enhancement and the complexities introduced by ensuring thread-safe access to the shared queue using mutexes, it became evident that the benefits did not justify the added complexity.
 
-Consequently, we decided to implement the more straightforward partitioning strategy.
+That's why, we decided to implement the more straightforward partitioning strategy.
 
 ## Performance tests
 
