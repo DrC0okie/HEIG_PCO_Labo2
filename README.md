@@ -8,7 +8,7 @@
 
 ## Introduction
 
-TODO
+We are interested in developing a program capable of cracking an md5 hash to recover a password. An application has been provided to us, but suffers from some performance shortcomings, as it is single-threaded. So the goal of this lab is to enhance the performance of the application by implementing a multi-threaded process.
 
 
 
@@ -59,4 +59,18 @@ Consequently, we decided to implement the more straightforward partitioning stra
 
 
 ## Performance tests
+
+TODO
+
+
+
+## Tested scenarios
+
+All the scenarios below have been checked:
+
+- [x] The application must find the original password and notify the user
+- [x] If the password is not found the application must notify the user
+- [x] The multi-threaded application must be faster than the original single-threaded one
+- [x] The application must not crash if the password length, or the hash value are erroneous
+- [x] The status bar must report the progress
 
