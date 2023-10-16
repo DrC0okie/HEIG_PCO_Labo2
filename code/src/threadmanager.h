@@ -19,6 +19,7 @@
 #include <QObject>
 #include <QString>
 #include <queue>
+#include <memory>
 
 #include "mythread.h"
 

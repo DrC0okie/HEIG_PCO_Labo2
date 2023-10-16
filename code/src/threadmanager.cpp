@@ -80,9 +80,9 @@ void ThreadManager::startWork(BruteForceThread::Parameters params) {
         params.rangeStart = start;
         params.rangeEnd   = end;
 
-        // Just as with std::thread, we need to pass the object along with the method
-        PcoThread* t = new PcoThread(&BruteForceThread::run, &thread, params);
-        threadPool.push_back(std::unique_ptr<PcoThread>(t));
+        // Just as with std::thread, we need to pass the object along with the method.
+        // We're using unique_ptr to avoid having to deallocate afterward.
+        threadPool.push_back(std::make_unique<PcoThread>(&BruteForceThread::run, &thread, params));
     }
 }
 
