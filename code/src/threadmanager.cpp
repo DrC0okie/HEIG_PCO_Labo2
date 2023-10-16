@@ -55,6 +55,9 @@ QString ThreadManager::startHacking(
 
     joinThreads();
 
+    //deallocate the threads
+    threadPool.clear();
+
     incrementProgress();  // Account for the chunk of work that found the password if any.
 
     return foundPassword;
@@ -71,7 +74,7 @@ void ThreadManager::setupWork(size_t combinations) {
 
 void ThreadManager::startWork(BruteForceThread::Parameters params) {
     BruteForceThread thread;
-    size_t           start, end;
+    size_t start, end;
 
     // Create and launch worker threads.
     for (size_t i = 0; i < threadCount; i++) {
