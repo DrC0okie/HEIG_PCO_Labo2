@@ -3,7 +3,7 @@ IndentWidth: 4
 SortIncludes: CaseInsensitive
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 0 # Workaround to align initializer list on next line
+ColumnLimit: 80
 ---
 Language: Cpp
 AccessModifierOffset: 0
