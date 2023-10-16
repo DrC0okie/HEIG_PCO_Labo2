@@ -44,6 +44,8 @@ QString ThreadManager::startHacking(
 
     setupWork(hashesToCompute);
 
+    // Flag needed to stop the threads when the password is found.
+    // The use of std::atomic ensures that the flag is updated atomically.
     std::atomic<bool> foundFlag(false);
 
     BruteForceThread::Parameters defaultParams = {

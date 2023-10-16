@@ -16,10 +16,10 @@
 #include <pcosynchro/pcomutex.h>
 #include <pcosynchro/pcothread.h>
 
+#include <memory>
 #include <QObject>
 #include <QString>
 #include <queue>
-#include <memory>
 
 #include "mythread.h"
 
@@ -27,6 +27,12 @@
 /**
  * \brief The ThreadManager class
  * \details This class manages threads used to reverse an md5 hash by brute force.
+ * \var workQueue The queue containing the ranges.
+ * \var threadPool The pool of running threads.
+ * \var threadCount The number of threads.
+ * \var hashesToCompute The total number of hashes to compute.
+ * \var countForProgress The number of hashes to compute before reporting progress.
+ * \var foundPassword The found password.
  */
 class ThreadManager : public QObject {
     public:

@@ -25,6 +25,16 @@ class BruteForceThread {
     /**
      * \brief The Parameters struct
      * \details This data structure is used to pass parameters to the thread.
+     * \var passwordFoundCallback The callback to be called when the password is found.
+     * \var progressCallback The callback to be called to report progress.
+     * \var charset The charset to be used.
+     * \var salt The salt to be used.
+     * \var hash The hash to be reversed.
+     * \var length The length of the password.
+     * \var flag The flag to be set when the password is found.
+     * \var rangeStart The start of the range of combinations to be tested.
+     * \var rangeEnd The end of the range of combinations to be tested.
+     * \var countForProgress The number of hashes to compute before reporting progress.
      */
     struct Parameters {
         std::function<void(QString)> passwordFoundCallback;
