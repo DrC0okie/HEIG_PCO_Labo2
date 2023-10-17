@@ -29,8 +29,7 @@ void BruteForceThread::run(Parameters params) {
             params.progressCallback();
         }
 
-        // If a match is found, store the result, empty the queue and set the
-        // found flag.
+        // If a match is found, set the flag to true and call the callback.
         if (hash == params.hash) {
             params.flag.store(true);
             params.passwordFoundCallback(combination);
