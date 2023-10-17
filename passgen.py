@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Generate passwords of length k in the middle of the search space divided N times
+using the hardcoded alphabet and provided salt.
+"""
+
 import itertools
 import hashlib
 
@@ -22,4 +30,3 @@ for i in indexes:
     salted_password = salt + password
     hashed_password = hashlib.md5(salted_password.encode()).hexdigest()
     print(f"Password at position {i}: {password} (salted: {salted_password}, hashed: {hashed_password})")
-
