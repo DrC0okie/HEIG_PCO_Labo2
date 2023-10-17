@@ -6,76 +6,84 @@
 
 ## Introduction
 
-We are interested in developing a program capable of cracking an md5 hash to recover a password. An application has been
-provided to us, but suffers from some performance shortcomings, as it is single-threaded. So the goal of this lab is to
-enhance the performance of the application by implementing a multi-threaded process.
+We are interested in developing a program capable of finding Md5 hash primitives. A single-threaded application skeleton
+was
+provided to us but suffers from performance shortcomings. The goal of this laboratory is to
+enhance the performance of the application by implementing a multithreaded process.
 
-## How to speed-up the hacking process?
+## Performance gains
 
-It is evident that the program primary function is to evaluate every possible combinations. This, being a
-computationally heavy task, we can leverage concurrency to speed-up the process by allowing simultaneous evaluation of
+The program's primary function is to hash every possible combinations of an alphabet and compare it to the provided
+hash.
+This CPU-intensive task can leverage concurrency to speed up the process by allowing for the simultaneous evaluation of
 distinct combinations.
 
-### 2.1 Partitioning Strategy
+### 2.1 Search space partitioning
 
-In order to multi-thread the workload, we must implement a good partitioning startegy. Every thread must have a fraction
+In order to multi-thread the workload, we must implement a judicious partitioning strategy. Every thread must have a
+fraction
 of the workload to compute.
 
-**Our solution**: The total workload, which is the entire space of combinations, is divided into distinct segments. This
+The total workload, which is the entire space of combinations, is divided into distinct segments. This
 approach is chosen over dynamic allocation because it reduces overhead. Each thread is assigned a specific range of
 combinations to evaluate. This range is determined by a unique identifier, which ensures no two threads work on the same
 combination, eliminating redundancy and the potential for race conditions.
 
 The `idToCombination` function will then take the partition the thread is assigned to and return every unique
-combination in this space.The logic behind this function is grounded in the concept of base conversion. Just as we can
+combination in this space. The logic behind this function is grounded in the concept of base conversion. Just as we can
 represent numbers in base-10 or base-16, the function represents numbers in a base equivalent to the size of the
-charset. This ensures that every unique ID corresponds to a unique combination of characters, making the process
+charset. This ensures that every unique identifier corresponds to a unique combination of characters, making the process
 efficient for brute-forcing.
 
 ### 2.2 Communication and Feedback
 
-While the tasks are separate, it is crucial to maintain a communication channel to the main thread. As soon as a thread
-finds the correct combination, it need to relay this information to prevent other threads from continuing redundant
-computations.
+While the tasks are separated, it is crucial to maintain a communication channel with the main thread. As soon as a
+thread
+finds the correct combination, it needs to relay this information to prevent other threads from continuing redundant
+computations. The chosen solutions are the following :
 
-**Our solution**:
-
-1. We use an atomic global flag that is checked by all threads. The flag serves as an immediate signaling mechanism.
+1. Use an atomic global flag that is checked by all threads. The flag serves as an immediate signaling mechanism.
    Other threads, in the course of their execution, check this flag before processing another chunk of combinations.
-2. We use an explicit termination with the `cancelWork` function. It provides a means to actively and explicitly
+2. Use an explicit termination with the `cancelWork` function. It provides a means to actively and explicitly
    instruct other threads to cease their operations.
 
-**Isn't those 2 mechanisms redundant?**
+The initial postulate was that the explicit termination would suffice. We nonetheless observed that without the atomic
+flag, the
+overall performance degraded. In the end, we decided to keep the atomic flag and the explicit termination even
+though we do not yet fully understand which mechanisms are at play. A solution that would be worth exploring is to use
+a profiler to understand the performance impact of each of these mechanisms. We regretfully did not have the time to
+pursue this avenue.
 
-Initially, we though that the explicit termination would suffice. But we observed that without the atomic flag, the
-overall performance was degraded. So without knowing exactly why, we decided to keep the atomic flag in addition to the
-explicit termination.
+### 2.3 Progress reporting
 
-### 2.3 progress bar
-
-Each thread keep track of the number of hash it compared. They also know the total combination they must compute. So each thread is responsible to call the `incrementProgress` every time they computed 1% of their workload. This function will then emit a signal to the `mainwindow` to refresh the status  of the progress bar.
+The progress reporting is handled by the `ThreadManager` class which provides a callback function to the threads. Each
+time a thread has done 1% of its work, it calls the callback function, which in turn raises a signal to increment the
+progress bar in the `MainWindow` class. The threads are provided with a value indicating the number of combinations to
+hash before making a callback.
 
 ## Workflow
 
-Here is a simplified representation of the workflow:
+The following diagram shows the workflow of the program:
 
 ![](figures/process_diagram.png)
 
 The execution begins with the `MainWindow` initiating the `prepareHacking()` function, which sets the initial parameters
 and readies the environment for the upcoming multithreading operations.
 
-The control is then transferred to the `ThreadManager` via the `startHacking()` function. Here, the primary
-responsibility is to manage and coordinate the multi-threaded operations. Within `ThreadManager`, the `setUpWork()`
-method is responsible for allocating distinct segments of the task to individual threads, ensuring no overlap or
-redundancy.
+The control is then transferred to the `ThreadManager` class via the `startHacking()` method. The primary
+responsibility of the class is to manage and coordinate the threaded operations. Within `ThreadManager`,
+the `setupWork()`
+method is responsible for splitting the work into as many chunks as there are threads, ensuring no overlap or
+redundancy. The rationale behind this approach is to minimize amount of work that must be done by the threads
+themselves,
+so they can focus on the primary task of computing the hash.
 
-Once the task distribution is complete, the `startWork()` method triggers each thread to execute its assigned
+Once the task splitting is complete, the `startWork()` method creates parametrized threads to execute its assigned
 operations. The `run()` function is executed, which sequentially goes through the steps of hacking. It starts by
 generating combinations using `idToCombination()`, followed by the computation of the hash with `computeHash()`.
 
-During this process, if a thread identifies a matching hash, it communicates to the main thread, which subsequently
-executes the `setFoundPassword()` function, logging the identified password. In the event a match isn't found within an
-iteration, the `progressCallback()` method is utilized to relay the status to the `ThreadManager`.
+During this process, if a thread identifies a hash primitive, it sets the atomic flag to `true` and uses the
+provided `setFoundPassword()` callback to communicate the found password to the `ThreadManager` class.
 
 Post-completion of tasks by the threads or upon successful identification of the hash, the `ThreadManager` invokes
 the `cancelWork()` function for all active threads, instructing them to terminate their operations. This is immediately
@@ -91,29 +99,30 @@ In our preliminary design, we employed the "work stealing" strategy, where each 
 from a shared queue upon completing its segment. To facilitate this, the combination space was fragmented into smaller
 units, all stored within a concurrency-safe queue accessible by all threads.
 
-However, on close analysis, we concluded that the efficiency gains from this method were minimal, amounting to about
-10-20 ms speed-up for a 4-character password. Given this performance enhancement and the complexities introduced by
-ensuring thread-safe access to the shared queue using mutexes, it became evident that the benefits did not justify the
-added complexity.
+However, on close analysis of our specific case, we concluded that the efficiency gains from this method were minimal,
+amounting to only about 10-20 ms speed-up for a 4-character password. Given this performance enhancement and the
+complexities introduced by ensuring thread-safe access to the shared queue using mutexes, it became evident that the
+benefits did not justify the added complexity.
 
-That's why, we decided to implement the more straightforward partitioning strategy.
+We hence decided to implement the more straightforward partitioning strategy which was presented earlier in this report.
 
 ## 5. Performance tests
 
 The performance of the hash cracker is measured on a 4 character salted password and with a different number of threads.
 The salt used throughout the tests is `pco23`.
 The tests were performed on a 16-core AMD Ryzen 7 PRO 6850U CPU with the amount of cores artificially limited to 2, 4 or
-8 using the `taskset` program. All times are in milliseconds.
-The benchmarks were ran once with the password situated in the middle of the search space and once at the beginning/end
-of the search space.
+8 using the `taskset` program. All recorded times are in milliseconds. All tests were ran using a salted password since
+we did not observe any significant difference in performance between salted and unsalted passwords.
+The benchmarks were ran with the hash primitive situated at the beginning, middle and end of the search space in order
+to get a better idea of the performance of the program.
 
-#### Middle of the search space
+### Middle of the search space
 
-The difficulty lies in the fact that the password must be situated in the middle of the search space for results to be
-meaningful.
+In this case, the difficulty lies in the fact that the password must be situated in the middle of the search space for
+the results to be meaningful.
 Since the search space is split in equal parts depending on the number of threads, the combination in the middle of the
 search space is not necessarily in the middle of the search space of each thread. A python script was used to find the
-password in the middle of the search space of each thread. The script is available in the root folder.
+combination in the middle of the search space of each thread.
 
 The following permutations indices were used to generate the hashes depending on the number of threads:
 
@@ -139,7 +148,7 @@ Running the brute force program with the aforementioned thread count/hash combin
 
 ![](figures/ss_middle.svg)
 
-#### Beginning of the search space
+### Beginning of the search space
 
 Testing was done using the first hash of the search space in order to get data for the warm-up time of the program. The
 following hash was used:
@@ -161,7 +170,7 @@ The results for a password situated at the beginning of the search space are as 
 
 ![](figures/ss_start.svg)
 
-#### End of the search space
+### End of the search space
 
 Tests were also ran on the last hash of the search space in order to get data for worst possible case for the program.
 The following hash was used:
@@ -183,7 +192,17 @@ The results for a password situated the end of the search space are as follows:
 
 ![](figures/ss_end.svg)
 
-#### Conclusion
+## Tests
+
+All the following cases have been manually checked:
+
+- [x] The application must find the original password and notify the user
+- [x] If the password is not found the application must notify the user
+- [x] The multithreaded application must be faster than the original single-threaded one
+- [x] The application must not crash if the password length or the hash value are erroneous
+- [x] The status bar must report the progress
+
+## Conclusion
 
 The results of the tests indicate a tendency for the program to hit its execution speed cap when the number of threads
 is equal to the number of cores.
@@ -193,24 +212,13 @@ the scheduler has to give time to multiple threads on a single core. Hence, addi
 performance of the program.
 
 The results for a match at the very beginning of the search space also indicate that the program start-up time is
-negligible compared to the execution time of the brute-force loop. Interestingly, the program start-up is considerably 
-slower when more threads are used. This is due to the overhead cost of creating new threads as well as the eventual 
+negligible compared to the execution time of the brute-force loop. Interestingly, the program start-up is considerably
+slower when more threads are used. This is due to the overhead cost of creating new threads as well as the eventual
 preemption that may happen at the very beginning of the program.
 
 Although the experiment gives us a good idea of the performance of the program, it is not a perfect representation of
-the
-performance of the program due to the lack of repetitions in the tests. This lack of repetition means that the results
-are not statistically significant.
-For proper testing, a bigger series of tests should be run in order to follow
+the performance of the program due to the lack of repetitions in the tests. This lack of repetition means that the
+results
+are not statistically significant. For proper testing, a bigger series of tests should be run in order to follow
 the [Law of large numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers).
-
-## Tested scenarios
-
-All the scenarios below have been checked:
-
-- [x] The application must find the original password and notify the user
-- [x] If the password is not found the application must notify the user
-- [x] The multi-threaded application must be faster than the original single-threaded one
-- [x] The application must not crash if the password length, or the hash value are erroneous
-- [x] The status bar must report the progress
 
