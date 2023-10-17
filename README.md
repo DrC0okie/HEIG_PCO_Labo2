@@ -75,7 +75,7 @@ The performance of the hash cracker is measured on a 4 character salted password
 The tests were performed on a 16-core AMD Ryzen 7 PRO 6850U CPU with the amount of cores artificially limited to 2, 4 or 8 using the `taskset` program. All times are in milliseconds.
 The benchmarks were ran once with the password situated in the middle of the search space and once at the beginning/end of the search space.
 
-### Middle of the search space
+#### Middle of the search space
 The difficulty lies in the fact that the password must be situated in the middle of the search space for results to be meaningful.
 Since the search space is split in equal parts depending on the number of threads, the combination in the middle of the search space is not necessarily in the middle of the search space of each thread. A python script was used to find the password in the middle of the search space of each thread. The script is available in the root folder.
 
@@ -91,7 +91,7 @@ The following permutations indices were used to generate the hashes depending on
 | 32                | 296480            | 9dab8af4e8b4e02232f6a5a784fe252a |
 
 
-Running the brute force program with the aforementioned thread/hash pairs produces the following results:
+Running the brute force program with the aforementioned thread count/hash combinations produces the following results:
 
 | Number of threads | Time (ms) with 2 cores | Time (ms) with 4 cores | Time (ms) with 8 cores |
 |-------------------|------------------------|------------------------|------------------------|
@@ -102,15 +102,15 @@ Running the brute force program with the aforementioned thread/hash pairs produc
 | 16                | 2309                   | 1283                   | 399                    |
 | 32                | 2391                   | 1416                   | 396                    |
 
-NB: TODO: the password is found at exactly 50% progress when only 1 thread is used. Talk about this.
+![](figures/ss_middle.svg)
 
-### Beginning and end the search space
-For good measure, the tests have also been run on the first and last permutations of the alphabet (respectively `aaaa` and `****`). The following hashes were used:
+#### Beginning of the search space
 
-| Position  | Salted hash                      |
-|-----------|----------------------------------|
-| Beginning | 518f6663077103d3242cf0d537da17c8 |
-| End       | 635e25bf87af5d325eff6806bd405f5c |
+Testing was done using the first hash of the search space in order to get data for the warm-up time of the program. The following hash was used:
+
+| Position  | Permutation index | Salted hash                      |
+|-----------|-------------------|----------------------------------|
+| Beginning | 1                 | 518f6663077103d3242cf0d537da17c8 |
 
 The results for a password situated at the beginning of the search space are as follows:
 
@@ -123,6 +123,16 @@ The results for a password situated at the beginning of the search space are as 
 | 16                | 28                     | 1                      | 1                      |
 | 32                | 52                     | 2                      | 2                      |
 
+![](figures/ss_start.svg)
+
+#### End of the search space
+
+Tests were also ran on the last hash of the search space in order to get data for worst possible case for the program. The following hash was used:
+
+| Position  | Permutation index | Salted hash                      |
+|-----------|-------------------|----------------------------------|
+| End       | 18974736          | 635e25bf87af5d325eff6806bd405f5c |
+
 The results for a password situated the end of the search space are as follows:
 
 | Number of threads | Time (ms) with 2 cores | Time (ms) with 4 cores | Time (ms) with 8 cores |
@@ -134,9 +144,19 @@ The results for a password situated the end of the search space are as follows:
 | 16                | 4853                   | 2307                   | 852                    |
 | 32                | 4819                   | 2380                   | 916                    |
 
+![](figures/ss_end.svg)
 
-TODO: should we test with passwords situated __almost__ at the beginning/end of the search space?
-TODO: cite that our little experiment doesn't follow the [Law of large numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers) and that we should set up a proper experiment to get more meaningful results.
+#### Observations
+
+The results of the tests indicate a tendency for the program to hit its execution speed cap when the number of threads is equal to the number of cores. 
+This is due to the fact that the performance of the program is strictly CPU bound and that the once the number of threads is equal to the number of cores, 
+the scheduler has to give time to multiple threads on a single core. Hence, adding more threads will only reduce the performance of the program.
+
+The results for a match at the very beginning of the search space also indicate that the program start-up time is negligible compared to the execution time of the brute-force loop.
+
+Although the experiment gives us a good idea of the performance of the program, it is not a perfect representation of the
+performance of the program due to the lack of repetitions in the tests. This lack of repetition means that the results are not statistically significant.
+For proper testing, a bigger series of tests should be run in order to follow the [Law of large numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers).
 
 ## Tested scenarios
 
