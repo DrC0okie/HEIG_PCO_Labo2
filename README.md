@@ -51,6 +51,10 @@ Initially, we though that the explicit termination would suffice. But we observe
 overall performance was degraded. So without knowing exactly why, we decided to keep the atomic flag in addition to the
 explicit termination.
 
+### 2.3 progress bar
+
+Each thread keep track of the number of hash it compared. They also know the total combination they must compute. So each thread is responsible to call the `incrementProgress` every time they computed 1% of their workload. This function will then emit a signal to the `mainwindow` to refresh the status  of the progress bar.
+
 ## Workflow
 
 Here is a simplified representation of the workflow:
@@ -102,8 +106,6 @@ The tests were performed on a 16-core AMD Ryzen 7 PRO 6850U CPU with the amount 
 8 using the `taskset` program. All times are in milliseconds.
 The benchmarks were ran once with the password situated in the middle of the search space and once at the beginning/end
 of the search space.
-
-+ TODO: Barre de progression
 
 #### Middle of the search space
 
@@ -181,9 +183,7 @@ The results for a password situated the end of the search space are as follows:
 
 ![](figures/ss_end.svg)
 
-#### Observations
-
-TODO: rename to conclusion ?
+#### Conclusion
 
 The results of the tests indicate a tendency for the program to hit its execution speed cap when the number of threads
 is equal to the number of cores.
